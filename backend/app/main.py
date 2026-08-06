@@ -1,16 +1,28 @@
 """ClaimGuard AI — FastAPI application entrypoint."""
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import claims, network, stats
 from app.core.config import get_settings
+from app.core.database import init_db
 
 settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    init_db()
+    yield
+
 
 app = FastAPI(
     title="ClaimGuard AI",
     description="Insurance Claims Fraud & Risk Analytics Platform",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -20,6 +32,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(claims.router)
+app.include_router(network.router)
+app.include_router(stats.router)
 
 
 @app.get("/health")
