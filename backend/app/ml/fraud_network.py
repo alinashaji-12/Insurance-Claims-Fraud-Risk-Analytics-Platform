@@ -1,25 +1,29 @@
 """
 Fraud ring / shared-entity network using NetworkX.
 
-Claims are nodes; edges connect claims sharing phone, bank account,
-address, VIN, or repair shop. Connected components of size >= 3 are
-potential fraud rings.
+Claims are nodes; edges connect claims sharing high-specificity entities
+(phone, bank account, address, VIN). Repair shop alone is too common to
+link every pair — it only reinforces an existing edge or links small buckets.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Iterable, Sequence
+from typing import Any, Sequence
 
 import networkx as nx
 
-ENTITY_FIELDS = (
+# High-specificity entities: always link pairs that share these
+PRIMARY_ENTITY_FIELDS = (
     ("claimant_phone", "phone"),
     ("bank_account", "bank_account"),
     ("claimant_address", "address"),
     ("vehicle_vin", "vin"),
-    ("repair_shop", "repair_shop"),
 )
+
+# Low-specificity: only form edges when the shared bucket is small
+SECONDARY_ENTITY_FIELDS = (("repair_shop", "repair_shop"),)
+SECONDARY_MAX_BUCKET = 25
 
 
 def _entity_value(claim: Any, field: str) -> str | None:
@@ -32,46 +36,81 @@ def _entity_value(claim: Any, field: str) -> str | None:
     return text
 
 
+def _claim_id(claim: Any) -> int:
+    return int(claim.id if not isinstance(claim, dict) else claim["id"])
+
+
+def _add_bucket_edges(
+    graph: nx.Graph,
+    buckets: dict[str, list[int]],
+    entity_type: str,
+    max_bucket: int | None = None,
+) -> None:
+    for value, ids in buckets.items():
+        if len(ids) < 2:
+            continue
+        if max_bucket is not None and len(ids) > max_bucket:
+            # Popular values (e.g. busy repair shops) are not discriminative alone
+            continue
+        for i in range(len(ids)):
+            for j in range(i + 1, len(ids)):
+                a, b = ids[i], ids[j]
+                if graph.has_edge(a, b):
+                    shared = graph[a][b].setdefault("shared_entities", [])
+                    shared.append({"type": entity_type, "value": value})
+                else:
+                    graph.add_edge(
+                        a,
+                        b,
+                        shared_entities=[{"type": entity_type, "value": value}],
+                    )
+
+
 def build_claim_graph(claims: Sequence[Any]) -> nx.Graph:
     graph = nx.Graph()
     for claim in claims:
-        cid = int(claim.id if not isinstance(claim, dict) else claim["id"])
-        score = getattr(claim, "fraud_score", None) if not isinstance(claim, dict) else claim.get("fraud_score")
-        name = getattr(claim, "claimant_name", "") if not isinstance(claim, dict) else claim.get("claimant_name", "")
+        cid = _claim_id(claim)
+        score = (
+            getattr(claim, "fraud_score", None)
+            if not isinstance(claim, dict)
+            else claim.get("fraud_score")
+        )
+        name = (
+            getattr(claim, "claimant_name", "")
+            if not isinstance(claim, dict)
+            else claim.get("claimant_name", "")
+        )
+        policy = (
+            getattr(claim, "policy_number", None)
+            if not isinstance(claim, dict)
+            else claim.get("policy_number")
+        )
         graph.add_node(
             cid,
             claim_id=cid,
             claimant_name=name,
             fraud_score=score,
-            policy_number=getattr(claim, "policy_number", None)
-            if not isinstance(claim, dict)
-            else claim.get("policy_number"),
+            policy_number=policy,
         )
 
-    # Index claim ids by entity value
-    for field, entity_type in ENTITY_FIELDS:
+    for field, entity_type in PRIMARY_ENTITY_FIELDS:
         buckets: dict[str, list[int]] = defaultdict(list)
         for claim in claims:
             value = _entity_value(claim, field)
             if value is None:
                 continue
-            cid = int(claim.id if not isinstance(claim, dict) else claim["id"])
-            buckets[value].append(cid)
-        for value, ids in buckets.items():
-            if len(ids) < 2:
+            buckets[value].append(_claim_id(claim))
+        _add_bucket_edges(graph, buckets, entity_type)
+
+    for field, entity_type in SECONDARY_ENTITY_FIELDS:
+        buckets = defaultdict(list)
+        for claim in claims:
+            value = _entity_value(claim, field)
+            if value is None:
                 continue
-            for i in range(len(ids)):
-                for j in range(i + 1, len(ids)):
-                    a, b = ids[i], ids[j]
-                    if graph.has_edge(a, b):
-                        shared = graph[a][b].setdefault("shared_entities", [])
-                        shared.append({"type": entity_type, "value": value})
-                    else:
-                        graph.add_edge(
-                            a,
-                            b,
-                            shared_entities=[{"type": entity_type, "value": value}],
-                        )
+            buckets[value].append(_claim_id(claim))
+        _add_bucket_edges(graph, buckets, entity_type, max_bucket=SECONDARY_MAX_BUCKET)
+
     return graph
 
 
@@ -90,10 +129,9 @@ def graph_to_payload(
 ) -> dict[str, Any]:
     """Serialize graph (or ego neighborhood) for frontend force-graph rendering."""
     if focus_claim_id is not None and focus_claim_id not in graph:
-        return {"nodes": [], "edges": [], "rings": []}
+        return {"nodes": [], "edges": [], "rings": [], "focus_claim_id": focus_claim_id}
 
     if neighborhood_only and focus_claim_id is not None:
-        # Include the connected component containing the focus claim
         component = nx.node_connected_component(graph, focus_claim_id)
         sub = graph.subgraph(component).copy()
     else:
