@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/.venv/
+.venv/
+venv/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+frontend/.env.local
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg
+
+# ML artifacts
+*.pkl
+*.joblib
+backend/ml_training/models/*.pkl
+
+# Dataset (place manually)
+backend/data/raw/*.csv
+!backend/data/raw/.gitkeep
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs / coverage
+*.log
+coverage/
+htmlcov/
+.coverage
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+backend/*.db
