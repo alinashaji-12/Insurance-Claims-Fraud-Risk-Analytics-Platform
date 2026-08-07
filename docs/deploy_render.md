@@ -67,10 +67,36 @@ No API keys or secrets are required for the hackathon demo stack.
 
 | Variable | Example / notes |
 |----------|-----------------|
-| `NEXT_PUBLIC_API_URL` | `https://claimguard-api.onrender.com` (no trailing slash). **Build-time** — change it → redeploy frontend. |
+| `NEXT_PUBLIC_API_URL` | Public URL of **`claimguard-api`** only (copy from that service’s Render page), e.g. `https://claimguard-api-ruwo.onrender.com` — **not** the web URL. No trailing slash. **Build-time** — change it → **Clear build cache & deploy** the frontend. |
 | `NODE_VERSION` | `20` (set in Blueprint) |
 
+**Do not swap these.** A common failure mode is putting the web URL into `NEXT_PUBLIC_API_URL` (or the API URL into `ALLOWED_ORIGINS`). The dashboard then fetches `/claims` on Next.js and shows **Could not load data** / **Not Found**.
+
 Local examples live in `backend/.env.example` and `frontend/.env.local.example`. Never commit real `.env` / `.env.local` files.
+
+---
+
+## Fix: dashboard shows “Could not load data” / “Not Found”
+
+Live check (replace hosts with yours if different):
+
+| Request | Expected |
+|---------|----------|
+| `GET https://claimguard-api-ruwo.onrender.com/health` | `200` `{"status":"ok"}` |
+| `GET https://…api…/claims?page=1&page_size=3` | `200` JSON (`total` may be `0`) |
+| `GET https://…api…/stats/summary` | `200` JSON |
+| `GET https://claimguard-web.onrender.com/claims?…` | Next.js **404** HTML — this is **not** the API |
+
+If the API returns `200` but the UI still says **Not Found**, the browser is calling the **web** origin (wrong `NEXT_PUBLIC_API_URL`), not an empty database. An empty DB returns `200` with `total: 0`, never this error.
+
+### Render Dashboard steps
+
+1. Open **claimguard-api** → copy its public URL (e.g. `https://claimguard-api-ruwo.onrender.com`).
+2. Open **claimguard-web** → **Environment** → set `NEXT_PUBLIC_API_URL` to that API URL (no trailing slash). Save.
+3. On **claimguard-web**: **Manual Deploy** → **Clear build cache & deploy** (required so Next.js rebakes `NEXT_PUBLIC_*`).
+4. Open **claimguard-api** → **Environment** → confirm `ALLOWED_ORIGINS` is exactly `https://claimguard-web.onrender.com` (scheme + host, no path). Restart/redeploy API if you changed it.
+5. Hard-refresh the dashboard. Network tab should show requests to the **api** host for `/claims` and `/stats/summary`.
+6. **Only after** the 404 is gone: if `total` is still `0`, seed via API Shell (`python -m app.seed`) or use Bulk Upload — empty data is separate from routing.
 
 ---
 
@@ -168,8 +194,10 @@ The Blueprint defaults to SQLite so a zero-cost demo can boot; swap `DATABASE_UR
 
 | Symptom | Likely fix |
 |---------|------------|
+| **Could not load data** + **Not Found** | `NEXT_PUBLIC_API_URL` points at web (or wrong host) → set to API URL + clear cache & redeploy web ([steps above](#fix-dashboard-shows-could-not-load-data--not-found)) |
 | CORS blocked | Set `ALLOWED_ORIGINS` to the frontend `https://…onrender.com` origin |
-| Frontend calls `localhost:8000` | `NEXT_PUBLIC_API_URL` missing at build time → set + redeploy web |
+| Frontend calls `localhost:8000` | `NEXT_PUBLIC_API_URL` missing at build time → set + clear cache & redeploy web |
+| API `200` with `total: 0` (no UI error) | Empty DB — seed or upload; **not** a routing bug |
 | Model / joblib errors | Supply `.pkl` files (see [ML models](#ml-models-important-blocker)) |
 | Empty DB after redeploy | Expected with SQLite on free tier → re-seed or use Postgres |
 | Build OOM on API | Upgrade instance, slim deps for deploy, or train models offline |

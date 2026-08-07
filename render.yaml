@@ -4,6 +4,11 @@
 # Dashboard: New → Blueprint → connect this repo → apply.
 # After first deploy, set ALLOWED_ORIGINS / NEXT_PUBLIC_API_URL if sync
 # references need a one-time dashboard tweak (see docs/deploy_render.md).
+#
+# Do NOT swap these when setting manually:
+#   ALLOWED_ORIGINS       = claimguard-web public URL  (CORS)
+#   NEXT_PUBLIC_API_URL   = claimguard-api public URL  (client fetch base)
+# Wrong NEXT_PUBLIC_API_URL → UI "Could not load data" / "Not Found".
 
 services:
   - type: web
@@ -19,7 +24,7 @@ services:
       # Ephemeral on free tier — prefer Render Postgres (see docs/deploy_render.md)
       - key: DATABASE_URL
         value: sqlite:///./claimguard.db
-      # Public frontend URL (synced from claimguard-web). Fallback: set manually in Dashboard.
+      # Must be the frontend origin (claimguard-web), not the API URL.
       - key: ALLOWED_ORIGINS
         fromService:
           name: claimguard-web
@@ -36,7 +41,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
-      # Public API URL baked into the Next.js client bundle at build time
+      # Must be the API origin (claimguard-api), not the web URL.
+      # Baked into the Next.js client at build time — change → clear cache & redeploy web.
       - key: NEXT_PUBLIC_API_URL
         fromService:
           name: claimguard-api
