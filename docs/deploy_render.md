@@ -139,14 +139,25 @@ Until models exist, fraud/anomaly scoring endpoints will fail when they try to `
 
 ## Database seed / sample data
 
-- SQLite file paths and `backend/data/raw/*.csv` are gitignored.
-- After first API deploy, use **Render Shell** on `claimguard-api` (with models + CSV in place):
+- Large `backend/data/raw/claims.csv` and `*.db` are **gitignored**. Free-tier Render disk is **ephemeral** (wiped on redeploy / spin-down).
+- **Automatic demo seed (preferred):** on API startup, if the claims table is empty, the API loads the committed file `backend/data/demo/claims_demo.csv` (~30 rows) plus synthetic fraud-ring claims. Fresh deploys should show data without manual steps.
+- **Fastest manual path (no redeploy):** Web UI → **Bulk Upload** → download `/sample_upload.csv` → upload. Hits `POST /claims/upload`.
+- **Full Kaggle seed via Render Shell** (optional, needs the large CSV on the instance):
 
-  ```bash
-  python -m app.seed
-  ```
+  1. Open the **claimguard-api** service → **Shell**.
+  2. Ensure `backend/data/raw/claims.csv` exists (upload via Shell / SCP; it is not in git).
+  3. From the API root (usually `/opt/render/project/src/backend` or the service root where `app` lives):
 
-- Or upload claims via `POST /claims/upload` from the UI once the API is healthy (`GET /health`).
+     ```bash
+     cd backend   # if your root is the repo root
+     python -m app.seed
+     # optional row cap:
+     python -m app.seed 500
+     ```
+
+  4. Verify: `GET /stats/summary` shows `total_claims > 0`.
+
+- After any empty-DB fix, **hard-refresh** the web app. Free-tier **cold start** can take 30–60+ seconds on the first request.
 
 ---
 
@@ -199,5 +210,5 @@ The Blueprint defaults to SQLite so a zero-cost demo can boot; swap `DATABASE_UR
 | Frontend calls `localhost:8000` | `NEXT_PUBLIC_API_URL` missing at build time → set + clear cache & redeploy web |
 | API `200` with `total: 0` (no UI error) | Empty DB — seed or upload; **not** a routing bug |
 | Model / joblib errors | Supply `.pkl` files (see [ML models](#ml-models-important-blocker)) |
-| Empty DB after redeploy | Expected with SQLite on free tier → re-seed or use Postgres |
+| Empty DB after redeploy | Auto demo seed should refill on API boot; if still empty, Bulk Upload or `python -m app.seed` |
 | Build OOM on API | Upgrade instance, slim deps for deploy, or train models offline |

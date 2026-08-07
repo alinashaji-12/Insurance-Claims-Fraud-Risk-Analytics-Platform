@@ -1,3 +1,6 @@
 policy_number,claimant_name,claimant_phone,claimant_address,bank_account,vehicle_vin,incident_date,claim_type,claim_amount,repair_shop,description
 SAMPLE-001,Alex Demo,+1-555-100-2001,10 Demo Rd Springfield,****100020001,SAMPLEVIN00000001,2024-03-01,Collision,12500.00,Apex Auto Body,Sample upload claim
 SAMPLE-002,Jordan Demo,+1-555-100-2002,22 Example Ave Riverside,****100020002,SAMPLEVIN00000002,2024-03-05,Liability,3200.00,Summit Collision Center,Low severity sample
+SAMPLE-003,Sam Demo,+1-555-100-2003,45 Sample Blvd Fairview,****100020003,SAMPLEVIN00000003,2024-03-10,Comprehensive,980.00,Harbor Paint & Repair,Hail damage sample
+SAMPLE-004,Taylor Demo,+1-555-100-2004,8 Upload Ln Madison,****100020004,SAMPLEVIN00000004,2024-03-15,Collision,18750.00,Valley Motors Body Shop,High severity sample
+SAMPLE-005,Morgan Demo,+1-555-100-2001,10 Demo Rd Springfield,****100020001,SAMPLEVIN00000005,2024-03-18,Collision,14200.00,Apex Auto Body,Shared phone/bank with SAMPLE-001 for network demo

@@ -31,9 +31,13 @@ build/
 # Ship trained demo models for Render (~3MB total)
 !backend/ml_training/models/*.pkl
 
-# Dataset (place manually)
+# Dataset (place manually — large Kaggle CSV is gitignored)
 backend/data/raw/*.csv
 !backend/data/raw/.gitkeep
+
+# Small committed demo seed (used on empty DB startup) — keep tracked
+!backend/data/demo/
+!backend/data/demo/**
 
 # Next.js
 frontend/.next/
