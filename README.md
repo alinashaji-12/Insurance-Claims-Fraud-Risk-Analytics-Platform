@@ -96,6 +96,14 @@ npm run dev
 
 Open http://localhost:3000
 
+## Deploy on Render
+
+Full stack (FastAPI + Next.js) deploys via the Blueprint at [`render.yaml`](render.yaml).
+
+**Quick path:** [Render Dashboard](https://dashboard.render.com) → **New** → **Blueprint** → connect this repo → **Apply**. That creates `claimguard-api` and `claimguard-web`.
+
+See **[docs/deploy_render.md](docs/deploy_render.md)** for env vars, CORS, Postgres vs SQLite, free-tier caveats, and the **gitignored `.pkl` models** requirement.
+
 ## Environment
 
 | File | Vars |

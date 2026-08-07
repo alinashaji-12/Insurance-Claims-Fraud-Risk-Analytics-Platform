@@ -1,0 +1,44 @@
+# ClaimGuard AI — Render Blueprint
+# https://render.com/docs/blueprint-spec
+#
+# Dashboard: New → Blueprint → connect this repo → apply.
+# After first deploy, set ALLOWED_ORIGINS / NEXT_PUBLIC_API_URL if sync
+# references need a one-time dashboard tweak (see docs/deploy_render.md).
+
+services:
+  - type: web
+    name: claimguard-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.11"
+      # Ephemeral on free tier — prefer Render Postgres (see docs/deploy_render.md)
+      - key: DATABASE_URL
+        value: sqlite:///./claimguard.db
+      # Public frontend URL (synced from claimguard-web). Fallback: set manually in Dashboard.
+      - key: ALLOWED_ORIGINS
+        fromService:
+          name: claimguard-web
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
+
+  - type: web
+    name: claimguard-web
+    runtime: node
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # Public API URL baked into the Next.js client bundle at build time
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          name: claimguard-api
+          type: web
+          envVarKey: RENDER_EXTERNAL_URL
