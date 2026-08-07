@@ -175,7 +175,7 @@ async def upload_claims(
         raise HTTPException(status_code=400, detail="Uploaded CSV is empty")
 
     try:
-        df = pd.read_csv(io.BytesIO(raw))
+        df = pd.read_csv(io.BytesIO(raw), comment="#")
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(
             status_code=400, detail=f"Failed to parse CSV: {exc}"

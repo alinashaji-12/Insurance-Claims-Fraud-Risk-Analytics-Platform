@@ -75,6 +75,16 @@ export default function UploadPage() {
             onChange={(e) => void handleFile(e.target.files?.[0] ?? null)}
           />
         </label>
+        <p className="mt-3">
+          <a
+            href="/sample_upload.csv"
+            download="sample_upload.csv"
+            className="text-sm font-semibold text-teal-800 underline-offset-2 hover:underline"
+          >
+            Download sample CSV
+          </a>
+          <span className="text-sm text-slate-500"> — known-good columns for a quick test</span>
+        </p>
         <p className="mx-auto mt-4 max-w-lg text-xs text-slate-500">
           Required (simple): policy_number, claimant_name, claimant_phone, claimant_address,
           bank_account, vehicle_vin, incident_date, claim_type, claim_amount, repair_shop
