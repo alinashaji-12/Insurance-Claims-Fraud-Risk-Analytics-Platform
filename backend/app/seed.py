@@ -450,8 +450,12 @@ def seed_demo_if_empty() -> int:
             )
             ring_count = inject_demo_fraud_rings(db)
             db.commit()
+            scored = score_seeded_claims(db)
             total = db.scalar(select(func.count()).select_from(Claim)) or 0
-            print(f"Auto-seeded {total} demo claims ({ring_count} fraud-ring rows).")
+            print(
+                f"Auto-seeded {total} demo claims "
+                f"({ring_count} fraud-ring rows, {scored} scored)."
+            )
             return int(total)
 
         df = pd.read_csv(DEMO_CSV, comment="#")
@@ -478,10 +482,12 @@ def seed_demo_if_empty() -> int:
         ring_count = inject_demo_fraud_rings(db)
         db.commit()
 
+        scored = score_seeded_claims(db)
         total = int(db.scalar(select(func.count()).select_from(Claim)) or 0)
         print(
             f"Auto-seeded {total} demo claims "
-            f"({len(batch)} from CSV, {ring_count} fraud-ring rows)."
+            f"({len(batch)} from CSV, {ring_count} fraud-ring rows, "
+            f"{scored} scored)."
         )
         return total
     except Exception as exc:  # noqa: BLE001
@@ -490,6 +496,40 @@ def seed_demo_if_empty() -> int:
         return 0
     finally:
         db.close()
+
+
+def score_seeded_claims(db) -> int:
+    """
+    Persist composite scores right after seed so /stats/summary is meaningful
+    on a cold start (no need to page through the queue first).
+    Soft-fails per claim if ML artifacts are missing/broken.
+    """
+    from app.api.scoring import score_and_persist
+
+    scored = 0
+    claims = list(db.scalars(select(Claim).where(Claim.fraud_score.is_(None))).all())
+    for claim in claims:
+        try:
+            score_and_persist(claim, db, persist=True)
+            # Demo rings should always surface as high-risk for the network walkthrough
+            if (
+                claim.policy_number.startswith("RING-")
+                and claim.fraud_score is not None
+                and claim.fraud_score < 60.0
+            ):
+                claim.fraud_score = 60.0
+                claim.status = "flagged"
+                db.add(claim)
+                db.commit()
+                db.refresh(claim)
+            scored += 1
+        except Exception as exc:  # noqa: BLE001
+            db.rollback()
+            print(
+                f"DEMO SEED: scoring skipped for {claim.policy_number}: {exc}",
+                file=sys.stderr,
+            )
+    return scored
 
 
 def inject_demo_fraud_rings(db) -> int:
@@ -537,20 +577,21 @@ def inject_demo_fraud_rings(db) -> int:
                 ),
                 incident_date=date(2023, 6, 10 + i),
                 claim_type="Collision",
-                claim_amount=12000.0 + i * 500,
+                # Round high amounts → high_amount + round_amount + no_police rules
+                claim_amount=25000.0 + i * 1000.0,
                 description=f"Demo linked claim for fraud ring visualization ({ring['tag']}).",
                 repair_shop=ring["shop"],
                 submitted_at=datetime(2023, 6, 12 + i, 10, 0, 0),
                 fraud_score=None,
                 fraud_label=True,
                 status="flagged",
-                age=35 + i,
+                age=22 + i,
                 vehicle_category="Sedan",
-                vehicle_price_band="30000 to 39000",
+                vehicle_price_band="more than 69000",
                 accident_area="Urban",
                 fault="Policy Holder",
-                past_number_of_claims="2 to 4",
-                age_of_vehicle="5 years",
+                past_number_of_claims="more than 4",
+                age_of_vehicle="2 years",
                 police_report_filed="No",
                 witness_present="No",
                 base_policy="Collision",
@@ -592,11 +633,15 @@ def seed(limit: int | None = None) -> None:
 
         demo_count = inject_demo_fraud_rings(db)
         db.commit()
+        scored = score_seeded_claims(db)
 
         total = db.scalar(select(func.count()).select_from(Claim)) or 0
         sample = db.scalars(select(Claim).limit(1)).first()
 
-        print(f"Seeded {total} claims ({demo_count} demo fraud-ring rows).")
+        print(
+            f"Seeded {total} claims "
+            f"({demo_count} demo fraud-ring rows, {scored} scored)."
+        )
         if sample:
             print(
                 "Sample row:",

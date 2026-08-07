@@ -6,7 +6,7 @@ import io
 
 import pandas as pd
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from sqlalchemy import case, func, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.scoring import build_claim_detail, get_claim_or_none, score_and_persist
@@ -30,6 +30,12 @@ def list_claims(
     min_score: float | None = Query(
         None, ge=0, le=100, description="Minimum fraud score"
     ),
+    q: str | None = Query(
+        None,
+        min_length=1,
+        max_length=100,
+        description="Search policy_number or claimant_name (substring)",
+    ),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -47,6 +53,14 @@ def list_claims(
         count_query = count_query.where(
             Claim.fraud_score.is_not(None), Claim.fraud_score >= min_score
         )
+    if q:
+        term = f"%{q.strip()}%"
+        text_filter = or_(
+            Claim.policy_number.ilike(term),
+            Claim.claimant_name.ilike(term),
+        )
+        query = query.where(text_filter)
+        count_query = count_query.where(text_filter)
 
     total = int(db.scalar(count_query) or 0)
     offset = (page - 1) * page_size

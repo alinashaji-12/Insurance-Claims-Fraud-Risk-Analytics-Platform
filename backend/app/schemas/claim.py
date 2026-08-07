@@ -129,3 +129,20 @@ class StatsSummary(BaseModel):
     avg_score: float
     fraud_label_count: int
     pending_score_count: int
+
+
+class ModelMetrics(BaseModel):
+    precision: float | None = None
+    recall: float | None = None
+    f1: float | None = None
+    roc_auc: float | None = None
+    accuracy: float | None = None
+    contamination: float | None = None
+    anomaly_rate: float | None = None
+
+
+class StatsMetrics(BaseModel):
+    fraud_model: ModelMetrics | None = None
+    anomaly_model: ModelMetrics | None = None
+    available: bool = False
+    message: str | None = None
