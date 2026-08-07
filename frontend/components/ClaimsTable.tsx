@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ClaimSummary } from "@/lib/api";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, isFraudRingPolicy } from "@/lib/utils";
 import { RiskScoreBadge } from "@/components/RiskScoreBadge";
 
 type SortKey = "fraud_score" | "claim_amount" | "incident_date" | "claimant_name";
@@ -89,32 +89,47 @@ export function ClaimsTable({ items, sortKey, sortDir, onSort }: Props) {
           </tr>
         </thead>
         <tbody>
-          {items.map((claim) => (
-            <tr key={claim.id} className="border-b border-slate-100 hover:bg-teal-50/40">
-              <td className="px-4 py-3">
-                <RiskScoreBadge score={claim.fraud_score} />
-              </td>
-              <td className="px-4 py-3">
-                <Link
-                  href={`/claims/${claim.id}`}
-                  className="font-medium text-slate-900 underline-offset-2 hover:text-teal-800 hover:underline"
-                >
-                  {claim.claimant_name}
-                </Link>
-              </td>
-              <td className="px-4 py-3 font-mono text-xs text-slate-600">{claim.policy_number}</td>
-              <td className="px-4 py-3 text-slate-700">{claim.claim_type}</td>
-              <td className="px-4 py-3 tabular-nums text-slate-800">
-                {formatCurrency(claim.claim_amount)}
-              </td>
-              <td className="px-4 py-3 text-slate-600">{claim.incident_date}</td>
-              <td className="px-4 py-3">
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs capitalize text-slate-700">
-                  {claim.status}
-                </span>
-              </td>
-            </tr>
-          ))}
+          {items.map((claim) => {
+            const ring = isFraudRingPolicy(claim.policy_number);
+            return (
+              <tr key={claim.id} className="border-b border-slate-100 hover:bg-teal-50/40">
+                <td className="px-4 py-3">
+                  <RiskScoreBadge score={claim.fraud_score} />
+                </td>
+                <td className="px-4 py-3">
+                  <Link
+                    href={`/claims/${claim.id}`}
+                    className="font-medium text-slate-900 underline-offset-2 hover:text-teal-800 hover:underline"
+                  >
+                    {claim.claimant_name}
+                  </Link>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-mono text-xs text-slate-600">{claim.policy_number}</span>
+                    {ring ? (
+                      <span
+                        className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-800"
+                        title="Demo fraud ring — open for network graph"
+                      >
+                        Fraud ring
+                      </span>
+                    ) : null}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-slate-700">{claim.claim_type}</td>
+                <td className="px-4 py-3 tabular-nums text-slate-800">
+                  {formatCurrency(claim.claim_amount)}
+                </td>
+                <td className="px-4 py-3 text-slate-600">{claim.incident_date}</td>
+                <td className="px-4 py-3">
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs capitalize text-slate-700">
+                    {claim.status}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FraudNetworkGraph } from "@/components/FraudNetworkGraph";
 import { RiskScoreBadge } from "@/components/RiskScoreBadge";
+import { isFraudRingPolicy } from "@/lib/utils";
 import { ScoreBreakdownChart } from "@/components/ScoreBreakdownChart";
 import {
   ApiError,
@@ -110,8 +111,13 @@ export default function ClaimDetailPage() {
             {claim.claimant_name}
           </h1>
           <p className="mt-1 text-slate-600">
-            Policy {claim.policy_number} · {claim.claim_type} ·{" "}
-            {formatCurrency(claim.claim_amount)}
+            Policy {claim.policy_number}
+            {isFraudRingPolicy(claim.policy_number) ? (
+              <span className="ml-2 inline-block rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-800">
+                Fraud ring
+              </span>
+            ) : null}{" "}
+            · {claim.claim_type} · {formatCurrency(claim.claim_amount)}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">

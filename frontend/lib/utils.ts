@@ -26,3 +26,10 @@ export function riskLevel(score: number | null | undefined): RiskLevel {
   if (score >= 35) return "medium";
   return "low";
 }
+
+/** Demo fraud-ring policies injected at seed (RING-ALPHA-*, RING-BETA-*). */
+export function isFraudRingPolicy(policyNumber: string | null | undefined): boolean {
+  if (!policyNumber) return false;
+  const p = policyNumber.toUpperCase();
+  return p.startsWith("RING-ALPHA") || p.startsWith("RING-BETA");
+}

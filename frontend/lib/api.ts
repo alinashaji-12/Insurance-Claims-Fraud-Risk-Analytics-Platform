@@ -176,6 +176,23 @@ export type StatsSummary = {
   pending_score_count: number;
 };
 
+export type ModelMetrics = {
+  precision?: number | null;
+  recall?: number | null;
+  f1?: number | null;
+  roc_auc?: number | null;
+  accuracy?: number | null;
+  contamination?: number | null;
+  anomaly_rate?: number | null;
+};
+
+export type StatsMetrics = {
+  fraud_model: ModelMetrics | null;
+  anomaly_model: ModelMetrics | null;
+  available: boolean;
+  message: string | null;
+};
+
 export type NetworkNode = {
   id: number;
   claim_id: number;
@@ -221,12 +238,14 @@ export function getApiBase(): string {
 export function fetchClaims(params: {
   status?: string;
   min_score?: number;
+  q?: string;
   page?: number;
   page_size?: number;
 }): Promise<ClaimsListResponse> {
   const q = new URLSearchParams();
   if (params.status) q.set("status", params.status);
   if (params.min_score != null) q.set("min_score", String(params.min_score));
+  if (params.q?.trim()) q.set("q", params.q.trim());
   q.set("page", String(params.page ?? 1));
   q.set("page_size", String(params.page_size ?? 25));
   return request<ClaimsListResponse>(`/claims?${q.toString()}`);
@@ -238,6 +257,10 @@ export function fetchClaim(id: number): Promise<ClaimDetail> {
 
 export function fetchStats(): Promise<StatsSummary> {
   return request<StatsSummary>("/stats/summary");
+}
+
+export function fetchStatsMetrics(): Promise<StatsMetrics> {
+  return request<StatsMetrics>("/stats/metrics");
 }
 
 export function fetchNetwork(claimId: number): Promise<NetworkResponse> {
