@@ -28,7 +28,8 @@ build/
 # ML artifacts
 *.pkl
 *.joblib
-backend/ml_training/models/*.pkl
+# Ship trained demo models for Render (~3MB total)
+!backend/ml_training/models/*.pkl
 
 # Dataset (place manually)
 backend/data/raw/*.csv
