@@ -7,11 +7,11 @@ suitable for analyst / judge-facing UI.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from functools import lru_cache
-from typing import Any, Mapping
+from typing import Any
 
 import numpy as np
-import pandas as pd
 import shap
 
 from app.ml.fraud_model import _claim_to_ml_row, load_fraud_artifact
@@ -46,7 +46,11 @@ FEATURE_PLAIN_ENGLISH: dict[str, str] = {
 def _base_feature_name(encoded_name: str, feature_columns: list[str]) -> str:
     """Map OneHotEncoder feature name back to original column when possible."""
     for col in feature_columns:
-        if encoded_name == col or encoded_name.startswith(f"cat__{col}_") or encoded_name.startswith(f"{col}_"):
+        if (
+            encoded_name == col
+            or encoded_name.startswith(f"cat__{col}_")
+            or encoded_name.startswith(f"{col}_")
+        ):
             return col
         if encoded_name.startswith("num__") and encoded_name.endswith(col):
             return col
@@ -103,7 +107,9 @@ def _get_explainer() -> tuple[Any, Any, list[str]]:
     return explainer, preprocessor, artifact["feature_columns"]
 
 
-def explain_claim(claim: Mapping[str, Any] | Any, top_k: int = 5) -> list[dict[str, Any]]:
+def explain_claim(
+    claim: Mapping[str, Any] | Any, top_k: int = 5
+) -> list[dict[str, Any]]:
     """
     Return a ranked list of plain-English SHAP reasons (not raw arrays).
     """

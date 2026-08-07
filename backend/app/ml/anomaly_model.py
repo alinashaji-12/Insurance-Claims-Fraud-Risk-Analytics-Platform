@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 import joblib
 import numpy as np
@@ -31,7 +32,9 @@ def _vehicle_price_mid(band: str | None, midpoints: Mapping[str, float]) -> floa
     return float(midpoints.get(str(band), 30000.0))
 
 
-def claim_to_anomaly_features(claim: Mapping[str, Any], artifact: dict[str, Any]) -> pd.DataFrame:
+def claim_to_anomaly_features(
+    claim: Mapping[str, Any], artifact: dict[str, Any]
+) -> pd.DataFrame:
     midpoints = artifact["vehicle_price_midpoints"]
     age = float(claim.get("age") or 0)
     deductible = float(claim.get("deductible") or 400)

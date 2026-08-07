@@ -17,9 +17,10 @@ Where:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 import joblib
 import pandas as pd
@@ -72,7 +73,9 @@ def _claim_to_ml_row(claim: Mapping[str, Any]) -> pd.DataFrame:
                 "NumberOfSuppliments": "none",
                 "AddressChange_Claim": claim.get("address_change_claim") or "no change",
                 "NumberOfCars": "1 vehicle",
-                "BasePolicy": claim.get("base_policy") or claim.get("claim_type") or "unknown",
+                "BasePolicy": claim.get("base_policy")
+                or claim.get("claim_type")
+                or "unknown",
                 "Days_Policy_Accident": "more than 30",
                 "Days_Policy_Claim": claim.get("days_policy_claim") or "more than 30",
             }
@@ -91,7 +94,11 @@ def score_ml(claim: Mapping[str, Any]) -> dict[str, Any]:
     # Align to training columns
     for col in feature_columns:
         if col not in row.columns:
-            row[col] = "unknown" if col[0].isupper() and col not in {"Age", "Deductible", "DriverRating"} else 0
+            row[col] = (
+                "unknown"
+                if col[0].isupper() and col not in {"Age", "Deductible", "DriverRating"}
+                else 0
+            )
     encoded = preprocessor.transform(row[feature_columns])
     proba = float(model.predict_proba(encoded)[0][1])
     return {
@@ -110,7 +117,9 @@ def compute_composite_score(
 
     Returns component scores and human-readable rule hits.
     """
-    mapping = claim_model_to_mapping(claim) if not isinstance(claim, Mapping) else dict(claim)
+    mapping = (
+        claim_model_to_mapping(claim) if not isinstance(claim, Mapping) else dict(claim)
+    )
 
     rules: RuleResult = evaluate_rules(mapping, amount_p90_by_type)
     ml = score_ml(mapping)
@@ -145,7 +154,8 @@ def compute_composite_score(
             "anomaly": WEIGHT_ANOMALY,
         },
         "rule_hits": [
-            {"rule_id": h.rule_id, "points": h.points, "reason": h.reason} for h in rules.hits
+            {"rule_id": h.rule_id, "points": h.points, "reason": h.reason}
+            for h in rules.hits
         ],
         "ml_flag": ml["ml_flag"],
         "ml_threshold": ml["threshold"],

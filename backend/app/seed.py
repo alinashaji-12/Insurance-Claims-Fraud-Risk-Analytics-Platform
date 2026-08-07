@@ -216,7 +216,9 @@ def _claim_amount(row: pd.Series) -> float:
     # Claim is typically a fraction of vehicle value; vary by deductible & rating
     deductible = float(row.get("Deductible", 400) or 400)
     rating = float(row.get("DriverRating", 1) or 1)
-    fraction = 0.12 + (rating * 0.03) + (_stable_int(f"amt:{row['PolicyNumber']}", 40) / 100.0)
+    fraction = (
+        0.12 + (rating * 0.03) + (_stable_int(f"amt:{row['PolicyNumber']}", 40) / 100.0)
+    )
     amount = max(500.0, base * fraction - deductible * 0.5)
     # Occasional round numbers (useful for rule engine later)
     if _stable_int(f"round:{row['PolicyNumber']}", 20) == 0:
@@ -288,19 +290,53 @@ def row_to_claim(row: pd.Series) -> Claim:
         fraud_label=fraud_label,
         status="open",
         age=int(row["Age"]) if pd.notna(row.get("Age")) else None,
-        vehicle_category=str(row.get("VehicleCategory")) if pd.notna(row.get("VehicleCategory")) else None,
-        vehicle_price_band=str(row.get("VehiclePrice")) if pd.notna(row.get("VehiclePrice")) else None,
-        accident_area=str(row.get("AccidentArea")) if pd.notna(row.get("AccidentArea")) else None,
+        vehicle_category=(
+            str(row.get("VehicleCategory"))
+            if pd.notna(row.get("VehicleCategory"))
+            else None
+        ),
+        vehicle_price_band=(
+            str(row.get("VehiclePrice")) if pd.notna(row.get("VehiclePrice")) else None
+        ),
+        accident_area=(
+            str(row.get("AccidentArea")) if pd.notna(row.get("AccidentArea")) else None
+        ),
         fault=str(row.get("Fault")) if pd.notna(row.get("Fault")) else None,
-        past_number_of_claims=str(row.get("PastNumberOfClaims")) if pd.notna(row.get("PastNumberOfClaims")) else None,
-        age_of_vehicle=str(row.get("AgeOfVehicle")) if pd.notna(row.get("AgeOfVehicle")) else None,
-        police_report_filed=str(row.get("PoliceReportFiled")) if pd.notna(row.get("PoliceReportFiled")) else None,
-        witness_present=str(row.get("WitnessPresent")) if pd.notna(row.get("WitnessPresent")) else None,
-        base_policy=str(row.get("BasePolicy")) if pd.notna(row.get("BasePolicy")) else None,
-        days_policy_claim=str(row.get("Days_Policy_Claim")) if pd.notna(row.get("Days_Policy_Claim")) else None,
-        address_change_claim=str(row.get("AddressChange_Claim")) if pd.notna(row.get("AddressChange_Claim")) else None,
+        past_number_of_claims=(
+            str(row.get("PastNumberOfClaims"))
+            if pd.notna(row.get("PastNumberOfClaims"))
+            else None
+        ),
+        age_of_vehicle=(
+            str(row.get("AgeOfVehicle")) if pd.notna(row.get("AgeOfVehicle")) else None
+        ),
+        police_report_filed=(
+            str(row.get("PoliceReportFiled"))
+            if pd.notna(row.get("PoliceReportFiled"))
+            else None
+        ),
+        witness_present=(
+            str(row.get("WitnessPresent"))
+            if pd.notna(row.get("WitnessPresent"))
+            else None
+        ),
+        base_policy=(
+            str(row.get("BasePolicy")) if pd.notna(row.get("BasePolicy")) else None
+        ),
+        days_policy_claim=(
+            str(row.get("Days_Policy_Claim"))
+            if pd.notna(row.get("Days_Policy_Claim"))
+            else None
+        ),
+        address_change_claim=(
+            str(row.get("AddressChange_Claim"))
+            if pd.notna(row.get("AddressChange_Claim"))
+            else None
+        ),
         deductible=int(row["Deductible"]) if pd.notna(row.get("Deductible")) else None,
-        driver_rating=int(row["DriverRating"]) if pd.notna(row.get("DriverRating")) else None,
+        driver_rating=(
+            int(row["DriverRating"]) if pd.notna(row.get("DriverRating")) else None
+        ),
         sex=str(row.get("Sex")) if pd.notna(row.get("Sex")) else None,
         make=str(row.get("Make")) if pd.notna(row.get("Make")) else None,
     )
@@ -344,7 +380,11 @@ def inject_demo_fraud_rings(db) -> int:
                 claimant_phone=ring["phone"] if i < 3 else _derive_phone(policy),
                 claimant_address=ring["address"],
                 bank_account=ring["bank"] if i != 1 else _derive_bank(policy),
-                vehicle_vin=ring.get("vin", _derive_vin(policy)) if i < 2 else _derive_vin(policy),
+                vehicle_vin=(
+                    ring.get("vin", _derive_vin(policy))
+                    if i < 2
+                    else _derive_vin(policy)
+                ),
                 incident_date=date(2023, 6, 10 + i),
                 claim_type="Collision",
                 claim_amount=12000.0 + i * 500,

@@ -9,7 +9,8 @@ link every pair — it only reinforces an existing edge or links small buckets.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import networkx as nx
 
@@ -27,7 +28,9 @@ SECONDARY_MAX_BUCKET = 25
 
 
 def _entity_value(claim: Any, field: str) -> str | None:
-    value = getattr(claim, field, None) if not isinstance(claim, dict) else claim.get(field)
+    value = (
+        getattr(claim, field, None) if not isinstance(claim, dict) else claim.get(field)
+    )
     if value is None:
         return None
     text = str(value).strip()

@@ -1,0 +1,4 @@
+# Sample analyst CSV for ClaimGuard bulk upload demos
+policy_number,claimant_name,claimant_phone,claimant_address,bank_account,vehicle_vin,incident_date,claim_type,claim_amount,repair_shop,description
+SAMPLE-001,Alex Demo,+1-555-100-2001,10 Demo Rd Springfield,****100020001,SAMPLEVIN00000001,2024-03-01,Collision,12500.00,Apex Auto Body,Sample upload claim
+SAMPLE-002,Jordan Demo,+1-555-100-2002,22 Example Ave Riverside,****100020002,SAMPLEVIN00000002,2024-03-05,Liability,3200.00,Summit Collision Center,Low severity sample

@@ -36,10 +36,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
-    const detail =
-      typeof body === "object" && body && "detail" in body
-        ? String((body as { detail: unknown }).detail)
-        : res.statusText;
+    let detail = res.statusText;
+    if (typeof body === "object" && body && "detail" in body) {
+      const raw = (body as { detail: unknown }).detail;
+      detail = Array.isArray(raw)
+        ? raw
+            .map((item) =>
+              typeof item === "object" && item && "msg" in item
+                ? String((item as { msg: unknown }).msg)
+                : String(item),
+            )
+            .join("; ")
+        : String(raw);
+    }
     throw new ApiError(detail || `Request failed (${res.status})`, res.status, body);
   }
 

@@ -18,7 +18,9 @@ from app.schemas.claim import (
 )
 
 
-def score_and_persist(claim: Claim, db: Session, *, persist: bool = True) -> dict[str, Any]:
+def score_and_persist(
+    claim: Claim, db: Session, *, persist: bool = True
+) -> dict[str, Any]:
     result = compute_composite_score(claim)
     claim.fraud_score = result["fraud_score"]
     if result["fraud_score"] >= 60:

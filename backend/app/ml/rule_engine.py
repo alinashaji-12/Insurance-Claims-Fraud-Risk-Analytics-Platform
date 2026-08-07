@@ -6,9 +6,9 @@ Each rule returns a weighted point value and a human-readable reason.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -49,8 +49,12 @@ def rule_early_claim(claim: Mapping[str, Any]) -> RuleHit | None:
     return None
 
 
-def rule_high_amount(claim: Mapping[str, Any], p90_by_type: Mapping[str, float]) -> RuleHit | None:
-    claim_type = str(_get(claim, "claim_type") or _get(claim, "base_policy") or "Unknown")
+def rule_high_amount(
+    claim: Mapping[str, Any], p90_by_type: Mapping[str, float]
+) -> RuleHit | None:
+    claim_type = str(
+        _get(claim, "claim_type") or _get(claim, "base_policy") or "Unknown"
+    )
     amount = float(_get(claim, "claim_amount", 0) or 0)
     p90 = float(p90_by_type.get(claim_type, 25000.0))
     if amount > p90:
@@ -72,7 +76,10 @@ def rule_round_amount(claim: Mapping[str, Any]) -> RuleHit | None:
         return RuleHit(
             rule_id="round_amount",
             points=8.0,
-            reason=f"Claim amount ${amount:,.0f} is a round number, which is statistically uncommon.",
+            reason=(
+                f"Claim amount ${amount:,.0f} is a round number, "
+                "which is statistically uncommon."
+            ),
         )
     return None
 

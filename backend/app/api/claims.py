@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import io
 from datetime import date, datetime
-from typing import Optional
 
 import pandas as pd
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
@@ -16,8 +15,8 @@ from app.core.database import get_db
 from app.models.claim import Claim
 from app.schemas.claim import (
     ClaimDetail,
-    ClaimSummary,
     ClaimsListResponse,
+    ClaimSummary,
     UploadResponse,
     UploadResultItem,
 )
@@ -42,8 +41,10 @@ SIMPLE_REQUIRED = {
 
 @router.get("", response_model=ClaimsListResponse)
 def list_claims(
-    status: Optional[str] = Query(None, description="Filter by status"),
-    min_score: Optional[float] = Query(None, ge=0, le=100, description="Minimum fraud score"),
+    status: str | None = Query(None, description="Filter by status"),
+    min_score: float | None = Query(
+        None, ge=0, le=100, description="Minimum fraud score"
+    ),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -55,7 +56,9 @@ def list_claims(
         query = query.where(Claim.status == status)
         count_query = count_query.where(Claim.status == status)
     if min_score is not None:
-        query = query.where(Claim.fraud_score.is_not(None), Claim.fraud_score >= min_score)
+        query = query.where(
+            Claim.fraud_score.is_not(None), Claim.fraud_score >= min_score
+        )
         count_query = count_query.where(
             Claim.fraud_score.is_not(None), Claim.fraud_score >= min_score
         )
@@ -64,7 +67,9 @@ def list_claims(
     offset = (page - 1) * page_size
     # Prefer higher scores first; unscored last (SQLite-safe null ordering)
     score_null_rank = case((Claim.fraud_score.is_(None), 1), else_=0)
-    query = query.order_by(score_null_rank.asc(), Claim.fraud_score.desc(), Claim.id.asc())
+    query = query.order_by(
+        score_null_rank.asc(), Claim.fraud_score.desc(), Claim.id.asc()
+    )
     claims = list(db.scalars(query.offset(offset).limit(page_size)).all())
 
     # Lazy-score the current page so the demo UI is never empty of scores
@@ -95,7 +100,11 @@ def _parse_simple_row(row: pd.Series, row_number: int) -> Claim:
         incident = date.fromisoformat(str(incident_raw).strip()[:10])
 
     submitted_raw = row.get("submitted_at")
-    if pd.isna(submitted_raw) or submitted_raw is None or str(submitted_raw).strip() == "":
+    if (
+        pd.isna(submitted_raw)
+        or submitted_raw is None
+        or str(submitted_raw).strip() == ""
+    ):
         submitted = datetime.combine(incident, datetime.min.time()).replace(hour=10)
     elif isinstance(submitted_raw, datetime):
         submitted = submitted_raw
@@ -168,7 +177,9 @@ async def upload_claims(
     try:
         df = pd.read_csv(io.BytesIO(raw))
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=400, detail=f"Failed to parse CSV: {exc}") from exc
+        raise HTTPException(
+            status_code=400, detail=f"Failed to parse CSV: {exc}"
+        ) from exc
 
     if df.empty:
         raise HTTPException(status_code=400, detail="CSV has no data rows")
@@ -195,7 +206,8 @@ async def upload_claims(
         if missing:
             raise HTTPException(
                 status_code=400,
-                detail="Kaggle CSV is missing required columns: " + ", ".join(sorted(missing)),
+                detail="Kaggle CSV is missing required columns: "
+                + ", ".join(sorted(missing)),
             )
 
     results: list[UploadResultItem] = []
@@ -206,7 +218,9 @@ async def upload_claims(
     for idx, row in df.iterrows():
         row_number = int(idx) + 2  # header is row 1
         try:
-            claim = row_to_claim(row) if is_kaggle else _parse_simple_row(row, row_number)
+            claim = (
+                row_to_claim(row) if is_kaggle else _parse_simple_row(row, row_number)
+            )
             db.add(claim)
             db.flush()
             score_result = score_and_persist(claim, db, persist=True)

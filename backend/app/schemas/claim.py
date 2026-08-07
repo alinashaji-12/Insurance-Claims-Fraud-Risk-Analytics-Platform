@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -40,8 +40,8 @@ class ClaimSummary(BaseModel):
     claim_type: str
     claim_amount: float
     incident_date: date
-    fraud_score: Optional[float] = None
-    fraud_label: Optional[bool] = None
+    fraud_score: float | None = None
+    fraud_label: bool | None = None
     status: str
     repair_shop: str
     submitted_at: datetime
@@ -53,21 +53,21 @@ class ClaimDetail(ClaimSummary):
     bank_account: str
     vehicle_vin: str
     description: str
-    age: Optional[int] = None
-    vehicle_category: Optional[str] = None
-    vehicle_price_band: Optional[str] = None
-    accident_area: Optional[str] = None
-    fault: Optional[str] = None
-    past_number_of_claims: Optional[str] = None
-    police_report_filed: Optional[str] = None
-    witness_present: Optional[str] = None
-    days_policy_claim: Optional[str] = None
-    address_change_claim: Optional[str] = None
-    make: Optional[str] = None
-    score_breakdown: Optional[ScoreComponents] = None
+    age: int | None = None
+    vehicle_category: str | None = None
+    vehicle_price_band: str | None = None
+    accident_area: str | None = None
+    fault: str | None = None
+    past_number_of_claims: str | None = None
+    police_report_filed: str | None = None
+    witness_present: str | None = None
+    days_policy_claim: str | None = None
+    address_change_claim: str | None = None
+    make: str | None = None
+    score_breakdown: ScoreComponents | None = None
     rule_hits: list[RuleHitSchema] = Field(default_factory=list)
     explanations: list[ExplanationItem] = Field(default_factory=list)
-    weights: Optional[dict[str, float]] = None
+    weights: dict[str, float] | None = None
 
 
 class ClaimsListResponse(BaseModel):
@@ -84,8 +84,8 @@ class UploadResultItem(BaseModel):
     claim_amount: float
     fraud_score: float
     status: str
-    claim_id: Optional[int] = None
-    error: Optional[str] = None
+    claim_id: int | None = None
+    error: str | None = None
 
 
 class UploadResponse(BaseModel):
@@ -99,8 +99,8 @@ class NetworkNode(BaseModel):
     id: int
     claim_id: int
     label: str
-    fraud_score: Optional[float] = None
-    policy_number: Optional[str] = None
+    fraud_score: float | None = None
+    policy_number: str | None = None
     is_focus: bool = False
 
 
@@ -119,7 +119,7 @@ class NetworkResponse(BaseModel):
     nodes: list[NetworkNode]
     edges: list[NetworkEdge]
     rings: list[NetworkRing]
-    focus_claim_id: Optional[int] = None
+    focus_claim_id: int | None = None
 
 
 class StatsSummary(BaseModel):
