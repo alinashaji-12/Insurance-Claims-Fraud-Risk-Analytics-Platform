@@ -78,9 +78,12 @@ export default function ClaimDetailPage() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-6 text-rose-800">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-6 text-amber-950">
         <p className="font-semibold">Could not load claim #{claimId}</p>
-        <p className="mt-1 text-sm">{error}</p>
+        <p className="mt-1 text-sm text-amber-900/90">{error}</p>
+        <p className="mt-2 text-sm text-amber-900/80">
+          If the API just woke from sleep, wait a few seconds and try again.
+        </p>
         <Link href="/" className="mt-3 inline-block text-sm font-semibold underline">
           Back to dashboard
         </Link>

@@ -57,10 +57,14 @@ def list_claims(
     )
     claims = list(db.scalars(query.offset(offset).limit(page_size)).all())
 
-    # Lazy-score the current page so the demo UI is never empty of scores
+    # Lazy-score the current page so the demo UI is never empty of scores.
+    # Soft-fail: missing/broken ML artifacts must not block the entire list.
     for claim in claims:
         if claim.fraud_score is None:
-            score_and_persist(claim, db, persist=True)
+            try:
+                score_and_persist(claim, db, persist=True)
+            except Exception:  # noqa: BLE001
+                db.rollback()
 
     items = [ClaimSummary.model_validate(c) for c in claims]
     return ClaimsListResponse(items=items, total=total, page=page, page_size=page_size)
@@ -71,8 +75,15 @@ def get_claim(claim_id: int, db: Session = Depends(get_db)) -> ClaimDetail:
     claim = get_claim_or_none(db, claim_id)
     if claim is None:
         raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found")
-    score_and_persist(claim, db, persist=True)
-    return build_claim_detail(claim, with_explanation=True)
+    try:
+        score_and_persist(claim, db, persist=True)
+        return build_claim_detail(claim, with_explanation=True)
+    except Exception as exc:  # noqa: BLE001
+        db.rollback()
+        raise HTTPException(
+            status_code=503,
+            detail=f"Scoring unavailable: {exc}",
+        ) from exc
 
 
 @router.post("/upload", response_model=UploadResponse)

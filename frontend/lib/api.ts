@@ -3,6 +3,9 @@
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
 
+/** Render free-tier cold starts often take 30–60s; abort so the UI can prompt Retry. */
+const DEFAULT_TIMEOUT_MS = 55_000;
+
 export class ApiError extends Error {
   status: number;
   body: unknown;
@@ -15,44 +18,86 @@ export class ApiError extends Error {
   }
 }
 
+function isAbortError(err: unknown): boolean {
+  return (
+    (err instanceof DOMException && err.name === "AbortError") ||
+    (err instanceof Error && err.name === "AbortError")
+  );
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
-      ...init?.headers,
-    },
-    cache: "no-store",
-  });
-
-  let body: unknown = null;
-  const text = await res.text();
-  if (text) {
-    try {
-      body = JSON.parse(text);
-    } catch {
-      body = text;
+  const timeoutMs = DEFAULT_TIMEOUT_MS;
+  const controller = new AbortController();
+  const externalSignal = init?.signal;
+  const onExternalAbort = () => controller.abort();
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort();
+    } else {
+      externalSignal.addEventListener("abort", onExternalAbort, { once: true });
     }
   }
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!res.ok) {
-    let detail = res.statusText;
-    if (typeof body === "object" && body && "detail" in body) {
-      const raw = (body as { detail: unknown }).detail;
-      detail = Array.isArray(raw)
-        ? raw
-            .map((item) =>
-              typeof item === "object" && item && "msg" in item
-                ? String((item as { msg: unknown }).msg)
-                : String(item),
-            )
-            .join("; ")
-        : String(raw);
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+        ...init?.headers,
+      },
+      cache: "no-store",
+    });
+
+    let body: unknown = null;
+    const text = await res.text();
+    if (text) {
+      try {
+        body = JSON.parse(text);
+      } catch {
+        body = text;
+      }
     }
-    throw new ApiError(detail || `Request failed (${res.status})`, res.status, body);
-  }
 
-  return body as T;
+    if (!res.ok) {
+      let detail = res.statusText;
+      if (typeof body === "object" && body && "detail" in body) {
+        const raw = (body as { detail: unknown }).detail;
+        detail = Array.isArray(raw)
+          ? raw
+              .map((item) =>
+                typeof item === "object" && item && "msg" in item
+                  ? String((item as { msg: unknown }).msg)
+                  : String(item),
+              )
+              .join("; ")
+          : String(raw);
+      }
+      throw new ApiError(detail || `Request failed (${res.status})`, res.status, body);
+    }
+
+    return body as T;
+  } catch (err) {
+    if (isAbortError(err) && !externalSignal?.aborted) {
+      throw new ApiError(
+        "API is waking up or unreachable (Render free tier can take ~30–60s). Click Retry.",
+        408,
+        { detail: "timeout" },
+      );
+    }
+    if (err instanceof TypeError) {
+      throw new ApiError(
+        "Cannot reach the API. It may be waking from sleep — wait a moment and Retry.",
+        0,
+        { detail: "network" },
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+    externalSignal?.removeEventListener("abort", onExternalAbort);
+  }
 }
 
 export type ClaimSummary = {

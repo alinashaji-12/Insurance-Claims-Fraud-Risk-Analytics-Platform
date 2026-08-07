@@ -51,10 +51,12 @@ export default function DashboardPage() {
   const [sortKey, setSortKey] = useState<SortKey>("fraud_score");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [loading, setLoading] = useState(true);
+  const [slowLoad, setSlowLoad] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setSlowLoad(false);
     setError(null);
     try {
       const [statsRes, claimsRes] = await Promise.all([
@@ -79,12 +81,22 @@ export default function DashboardPage() {
       setError(message);
     } finally {
       setLoading(false);
+      setSlowLoad(false);
     }
   }, [page, status, minScore]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!loading) {
+      setSlowLoad(false);
+      return;
+    }
+    const t = window.setTimeout(() => setSlowLoad(true), 8_000);
+    return () => window.clearTimeout(t);
+  }, [loading]);
 
   const sortedItems = useMemo(() => {
     const copy = [...items];
@@ -127,13 +139,13 @@ export default function DashboardPage() {
       </div>
 
       {error ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800">
-          <p className="font-medium">Could not load data</p>
-          <p className="text-sm">{error}</p>
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
+          <p className="font-medium">API waking up or unreachable</p>
+          <p className="mt-1 text-sm text-amber-900/90">{error}</p>
           <button
             type="button"
             onClick={() => void load()}
-            className="mt-2 text-sm font-semibold underline"
+            className="mt-3 rounded-lg bg-teal-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-teal-900"
           >
             Retry
           </button>
@@ -141,7 +153,15 @@ export default function DashboardPage() {
       ) : null}
 
       {loading && !stats ? (
-        <SkeletonCards />
+        <div className="space-y-3">
+          <SkeletonCards />
+          {slowLoad ? (
+            <p className="text-sm text-slate-600">
+              Still waiting on the API — Render free-tier services often sleep after idle and can
+              take 30–60s to wake. Hang tight, or refresh once the API is up.
+            </p>
+          ) : null}
+        </div>
       ) : stats ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard label="Total claims" value={stats.total_claims.toLocaleString()} />
