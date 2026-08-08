@@ -2,10 +2,13 @@
 
 ## Setup before judges walk up
 
-1. Backend running: `uvicorn app.main:app --reload --port 8000`
-2. Frontend running: `npm run dev` → http://localhost:3000
+**Preferred (live demo):**
+
+1. Wake the API: open [https://claimguard-api-ruwo.onrender.com/health](https://claimguard-api-ruwo.onrender.com/health) until `{"status":"ok"}`.
+2. Open the web app: [https://claimguard-web.onrender.com](https://claimguard-web.onrender.com).
 3. Empty DB auto-seeds on API start (`claims_demo.csv` + `RING-*` fraud rings, scored at seed).
-   Full Kaggle seed is optional: `python -m app.seed`
+
+**Optional local run:** start the API (`uvicorn app.main:app --reload --port 8000`) and frontend (`npm run dev` on port `3000`). Full Kaggle seed: `python -m app.seed`.
 
 ## Walkthrough
 

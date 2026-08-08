@@ -88,8 +88,8 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-- Health: http://localhost:8000/health → `{"status":"ok"}`
-- Swagger: http://localhost:8000/docs
+- Health: `GET /health` on the API (port `8000`) → `{"status":"ok"}`
+- Swagger: `/docs` on the API (port `8000`)
 
 Optional retrain (models are already checked in as `.pkl` for demo speed):
 
@@ -103,12 +103,14 @@ python -m ml_training.train_anomaly_model
 ```bash
 cd frontend
 cp .env.local.example .env.local
-# NEXT_PUBLIC_API_URL=http://localhost:8000
+# Point NEXT_PUBLIC_API_URL at your API (see .env.local.example)
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000
+Open the Next.js app in the browser (default port `3000`).
+
+Live demo (no local servers): [claimguard-web.onrender.com](https://claimguard-web.onrender.com) · API [health](https://claimguard-api-ruwo.onrender.com/health).
 
 ### Environment variables
 

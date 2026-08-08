@@ -14,7 +14,7 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open the app in your browser (Next.js default port `3000`), or use the live demo at [https://claimguard-web.onrender.com](https://claimguard-web.onrender.com).
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

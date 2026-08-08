@@ -108,7 +108,7 @@ After deploy:
 
 1. Open the frontend URL in a browser.
 2. If API calls fail with CORS errors, set `ALLOWED_ORIGINS` on the API to the **exact** frontend origin and redeploy (or restart) the API.
-3. You can list multiple origins: `https://claimguard-web.onrender.com,http://localhost:3000`.
+3. You can list multiple origins (comma-separated), e.g. `https://claimguard-web.onrender.com` plus any extra frontend origins you need.
 
 ---
 
@@ -207,7 +207,7 @@ The Blueprint defaults to SQLite so a zero-cost demo can boot; swap `DATABASE_UR
 |---------|------------|
 | **Could not load data** + **Not Found** | `NEXT_PUBLIC_API_URL` points at web (or wrong host) → set to API URL + clear cache & redeploy web ([steps above](#fix-dashboard-shows-could-not-load-data--not-found)) |
 | CORS blocked | Set `ALLOWED_ORIGINS` to the frontend `https://…onrender.com` origin |
-| Frontend calls `localhost:8000` | `NEXT_PUBLIC_API_URL` missing at build time → set + clear cache & redeploy web |
+| Frontend calls wrong / missing API host | `NEXT_PUBLIC_API_URL` missing at build time → set to `https://claimguard-api-ruwo.onrender.com` (or your API URL) + clear cache & redeploy web |
 | API `200` with `total: 0` (no UI error) | Empty DB — seed or upload; **not** a routing bug |
 | Model / joblib errors | Supply `.pkl` files (see [ML models](#ml-models-important-blocker)) |
 | Empty DB after redeploy | Auto demo seed should refill on API boot; if still empty, Bulk Upload or `python -m app.seed` |
